@@ -33,6 +33,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera")
 	class UCameraComponent* CameraComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effects")
+	class UPointLightComponent* FireGlowLight;
+
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	EWyvernMovementState CurrentMovementState;
 

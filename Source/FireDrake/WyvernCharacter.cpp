@@ -5,6 +5,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Engine/Engine.h"
 #include "WyvernAnimInstance.h"
+#include "Components/PointLightComponent.h"
 
 AWyvernCharacter::AWyvernCharacter()
 {
@@ -34,6 +35,19 @@ AWyvernCharacter::AWyvernCharacter()
 	// Create camera component
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComponent"));
 	CameraComponent->SetupAttachment(SpringArmComponent);
+
+	// Create fire glow light
+	FireGlowLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("FireGlowLight"));
+	FireGlowLight->SetupAttachment(RootComponent);
+	FireGlowLight->SetRelativeLocation(FVector(0.0f, 0.0f, 150.0f)); // Position above dragon
+	FireGlowLight->SetIntensity(5.0f);
+	FireGlowLight->SetLightColor(FLinearColor(1.0f, 0.4f, 0.0f)); // Deeper orange color
+	FireGlowLight->SetAttenuationRadius(1200.0f);
+	FireGlowLight->SetSourceRadius(200.0f); // Makes light act like a larger sphere
+	FireGlowLight->SetSoftSourceRadius(100.0f); // Softens shadows
+	FireGlowLight->bUseInverseSquaredFalloff = false;
+	FireGlowLight->SetCastShadows(false); // Disable shadows to prevent self-shadowing
+	FireGlowLight->SetVolumetricScatteringIntensity(0.5f);
 
 	// Initialize movement state
 	CurrentMovementState = EWyvernMovementState::Idle;
