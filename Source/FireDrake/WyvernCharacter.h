@@ -2,6 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
 #include "WyvernCharacter.generated.h"
 
 UENUM(BlueprintType)
@@ -24,6 +30,7 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -56,6 +63,22 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float LandingDistance = 10.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Flame Breath")
+	UNiagaraSystem* FlameBreathTemplate = nullptr;
+
+	UPROPERTY()
+	UNiagaraComponent* FlameBreathComponent = nullptr;
+
+	UPROPERTY()
+	UInputAction* IA_FlameBreath = nullptr;
+
+	UPROPERTY()
+	UInputMappingContext* IMC_Dragon = nullptr;
+
+	void StartFlameBreath();
+	void StopFlameBreath();
+	void CreateFlameInputObjects();
 
 private:
 	void MoveForward(float Value);

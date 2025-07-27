@@ -6,6 +6,8 @@
 #include "Engine/Engine.h"
 #include "WyvernAnimInstance.h"
 #include "Components/PointLightComponent.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 AWyvernCharacter::AWyvernCharacter()
 {
@@ -57,11 +59,48 @@ AWyvernCharacter::AWyvernCharacter()
 	bIsDescending = false;
 	bIsLanding = false;
 	TakeOffTimer = 0.0f;
+
+	// Create flame breath component
+	FlameBreathComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("FlameBreath"));
+	FlameBreathComponent->SetupAttachment(GetMesh(), TEXT("MouthSocket"));
+	FlameBreathComponent->SetAutoActivate(false);
+
+	// Wire up the flame breath asset using constructor helpers
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> NS(TEXT("/Game/F_NinjaFlameBreath/Fx/NS_FlameBreath.NS_FlameBreath"));
+	if (NS.Succeeded())
+	{
+		FlameBreathTemplate = NS.Object;
+		FlameBreathComponent->SetAsset(FlameBreathTemplate);
+	}
+}
+
+void AWyvernCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	// Create the input objects after components are initialized
+	CreateFlameInputObjects();
 }
 
 void AWyvernCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+	
+	// Register the mapping context in BeginPlay to ensure the controller is ready
+	if (IMC_Dragon && GetController())
+	{
+		if (APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
+			if (ULocalPlayer* LP = PC->GetLocalPlayer())
+			{
+				if (auto* Subsys = LP->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+				{
+					Subsys->AddMappingContext(IMC_Dragon, 0);
+					UE_LOG(LogTemp, Warning, TEXT("BeginPlay: Re-registered mapping context"));
+				}
+			}
+		}
+	}
 }
 
 void AWyvernCharacter::StartJump()
@@ -139,16 +178,39 @@ void AWyvernCharacter::Tick(float DeltaTime)
 void AWyvernCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	UE_LOG(LogTemp, Warning, TEXT("SetupPlayerInputComponent: Starting input setup"));
 
+	// Keep existing axis bindings for backwards compatibility
 	PlayerInputComponent->BindAxis("MoveForward", this, &AWyvernCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AWyvernCharacter::MoveRight);
 	PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 
+	// Keep existing action bindings for backwards compatibility
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &AWyvernCharacter::StartJump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &AWyvernCharacter::StopJump);
 	PlayerInputComponent->BindAction("Descend", IE_Pressed, this, &AWyvernCharacter::StartDescend);
 	PlayerInputComponent->BindAction("Descend", IE_Released, this, &AWyvernCharacter::StopDescend);
+
+	// Use Enhanced Input for flame breath
+	if (auto* EIC = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("SetupPlayerInputComponent: Found Enhanced Input Component"));
+		if (IA_FlameBreath)
+		{
+			EIC->BindAction(IA_FlameBreath, ETriggerEvent::Started, this, &AWyvernCharacter::StartFlameBreath);
+			EIC->BindAction(IA_FlameBreath, ETriggerEvent::Completed, this, &AWyvernCharacter::StopFlameBreath);
+			UE_LOG(LogTemp, Warning, TEXT("SetupPlayerInputComponent: Successfully bound flame breath actions"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("SetupPlayerInputComponent: IA_FlameBreath is null!"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("SetupPlayerInputComponent: Failed to cast to Enhanced Input Component"));
+	}
 }
 
 void AWyvernCharacter::MoveForward(float Value)
@@ -296,4 +358,64 @@ void AWyvernCharacter::SyncAnimState()
 			Anim->MovementState = CurrentMovementState;
 		}
 	}
+}
+
+void AWyvernCharacter::StartFlameBreath()
+{
+	UE_LOG(LogTemp, Warning, TEXT("StartFlameBreath: Called"));
+	if (FlameBreathComponent)
+	{
+		if (!FlameBreathComponent->IsActive())
+		{
+			FlameBreathComponent->Activate(true);
+			UE_LOG(LogTemp, Warning, TEXT("StartFlameBreath: Activated flame breath component"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("StartFlameBreath: Component already active"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("StartFlameBreath: FlameBreathComponent is null!"));
+	}
+}
+
+void AWyvernCharacter::StopFlameBreath()
+{
+	UE_LOG(LogTemp, Warning, TEXT("StopFlameBreath: Called"));
+	if (FlameBreathComponent)
+	{
+		if (FlameBreathComponent->IsActive())
+		{
+			FlameBreathComponent->Deactivate();
+			UE_LOG(LogTemp, Warning, TEXT("StopFlameBreath: Deactivated flame breath component"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("StopFlameBreath: Component already inactive"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("StopFlameBreath: FlameBreathComponent is null!"));
+	}
+}
+
+void AWyvernCharacter::CreateFlameInputObjects()
+{
+	UE_LOG(LogTemp, Warning, TEXT("CreateFlameInputObjects: Starting flame input setup"));
+
+	// Create input action
+	IA_FlameBreath = NewObject<UInputAction>(this);
+	IA_FlameBreath->ValueType = EInputActionValueType::Boolean;
+	UE_LOG(LogTemp, Warning, TEXT("CreateFlameInputObjects: Created IA_FlameBreath action"));
+
+	// Create input mapping context
+	IMC_Dragon = NewObject<UInputMappingContext>(this);
+	UE_LOG(LogTemp, Warning, TEXT("CreateFlameInputObjects: Created IMC_Dragon context"));
+
+	// Map left mouse button to flame breath action
+	FEnhancedActionKeyMapping& Mapping = IMC_Dragon->MapKey(IA_FlameBreath, EKeys::LeftMouseButton);
+	UE_LOG(LogTemp, Warning, TEXT("CreateFlameInputObjects: Mapped LeftMouseButton to flame breath"));
 }
