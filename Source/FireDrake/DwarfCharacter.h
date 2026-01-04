@@ -9,12 +9,9 @@
 UENUM(BlueprintType)
 enum class EDwarfAnimState : uint8
 {
-	Idle UMETA(DisplayName = "Idle"),
-	Jog UMETA(DisplayName = "Jog"),
-	Attack UMETA(DisplayName = "Attack"),
-	HitReact UMETA(DisplayName = "Hit React"),
-	OnFire UMETA(DisplayName = "On Fire"),
-	Dead UMETA(DisplayName = "Dead")
+	Idle,
+	Run,
+	OnFire
 };
 
 UCLASS()
@@ -33,6 +30,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Animation", Replicated)
 	float FlailIntensity = 1.0f;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	EDwarfMovementState CurrentMovementState;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Combat")
 	float MeleeRange = 150.0f;
@@ -57,9 +57,6 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Animation")
 	void SetAnimState(EDwarfAnimState NewState);
-
-	UFUNCTION(BlueprintCallable, Category = "Combat")
-	float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UHealthComponent* HealthComponent;

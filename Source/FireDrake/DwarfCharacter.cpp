@@ -67,29 +67,12 @@ void ADwarfCharacter::SetAnimState(EDwarfAnimState NewState)
 
 void ADwarfCharacter::PerformMeleeAttack()
 {
-	if (!bCanAttack || AnimState == EDwarfAnimState::Dead)
-	{
-		return;
-	}
-
-	bCanAttack = false;
-	SetAnimState(EDwarfAnimState::Attack);
-
-	GetWorld()->GetTimerManager().SetTimer(AttackCooldownHandle, this, &ADwarfCharacter::ResetAttackCooldown, AttackCooldown, false);
+	// TODO: impl
 }
 
 void ADwarfCharacter::SetOnFire(float Duration)
 {
-	if (AnimState == EDwarfAnimState::Dead)
-	{
-		return;
-	}
-
-	bIsOnFire = true;
-	SetAnimState(EDwarfAnimState::OnFire);
-
-	GetWorld()->GetTimerManager().ClearTimer(OnFireTimerHandle);
-	GetWorld()->GetTimerManager().SetTimer(OnFireTimerHandle, this, &ADwarfCharacter::StopBeingOnFire, Duration, false);
+	// TODO: impl
 }
 
 void ADwarfCharacter::StopBeingOnFire()
@@ -101,54 +84,16 @@ void ADwarfCharacter::StopBeingOnFire()
 	}
 }
 
-void ADwarfCharacter::ResetAttackCooldown()
-{
-	bCanAttack = true;
-	if (AnimState == EDwarfAnimState::Attack)
-	{
-		SetAnimState(EDwarfAnimState::Idle);
-	}
-}
-
-float ADwarfCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
-	if (HealthComponent)
-	{
-		HealthComponent->TakeDamage(ActualDamage);
-
-		if (HealthComponent->GetCurrentHealth() > 0 && AnimState != EDwarfAnimState::OnFire)
-		{
-			SetAnimState(EDwarfAnimState::HitReact);
-			
-			FTimerHandle HitReactTimer;
-			GetWorld()->GetTimerManager().SetTimer(HitReactTimer, [this]()
-			{
-				if (AnimState == EDwarfAnimState::HitReact)
-				{
-					SetAnimState(EDwarfAnimState::Idle);
-				}
-			}, 0.5f, false);
-		}
-	}
-
-	return ActualDamage;
-}
 
 void ADwarfCharacter::UpdateAnimationState()
 {
-	if (AnimState == EDwarfAnimState::Dead || AnimState == EDwarfAnimState::OnFire || AnimState == EDwarfAnimState::Attack)
-	{
-		return;
-	}
 
 	float Speed = GetVelocity().Size();
 	if (Speed > 10.0f)
 	{
-		if (AnimState != EDwarfAnimState::Jog)
+		if (AnimState != EDwarfAnimState::Run)
 		{
-			SetAnimState(EDwarfAnimState::Jog);
+			SetAnimState(EDwarfAnimState::Run);
 		}
 	}
 	else
@@ -162,15 +107,5 @@ void ADwarfCharacter::UpdateAnimationState()
 
 void ADwarfCharacter::OnDeath()
 {
-	SetAnimState(EDwarfAnimState::Dead);
-
-	GetCharacterMovement()->DisableMovement();
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	if (AAIController* AIController = Cast<AAIController>(GetController()))
-	{
-		AIController->GetBrainComponent()->StopLogic("Dead");
-	}
-
-	SetLifeSpan(10.0f);
+	// TODO: impl
 }
